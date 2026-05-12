@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bảo Tàng Áo Dài Việt Nam</title>
+
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+
+  <!--
+    FONTS:
+    • "Be Vietnam Pro"  — được thiết kế riêng cho tiếng Việt, đầy đủ dấu
+    • "Playfair Display" — chữ hoa sang trọng cho tiêu đề lớn
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════
+       DESIGN TOKENS
+       ═══════════════════════════════════════ */
+    :root {
+      --crimson:      #7B1111;
+      --crimson-dark: #4a0a0a;
+      --gold:         #C9A84C;
+      --gold-light:   #E8C96A;
+      --gold-dim:     rgba(201,168,76,0.35);
+      --cream:        #F5ECD7;
+      --cream-dim:    rgba(245,236,215,0.65);
+      --glass:        rgba(15, 4, 4, 0.78);
+      --glass-light:  rgba(30, 8, 8, 0.60);
+
+      --font-display: 'Playfair Display', 'Be Vietnam Pro', serif;
+      --font-body:    'Be Vietnam Pro', sans-serif;
+    }
+
+    /* ═══════════════════════════════════════
+       BASE
+       ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: var(--font-body);
+    }
+
+    /* ═══════════════════════════════════════
+       SCENE 1 — ẢNH TĨNH (Static image view)
+       Hiển thị fullscreen khi đang ở cảnh 1.
+       Ẩn đi khi chuyển sang cảnh 360.
+       ═══════════════════════════════════════ */
+    #static-view {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a0000;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    #static-view.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Ảnh nền fullscreen */
+    #static-bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('images/room1.jpg');
+      background-size: cover;
+      background-position: center;
+      filter: brightness(0.55);
+    }
+
+    /* Lớp gradient overlay */
+    #static-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to top,  rgba(10,0,0,0.92) 0%, transparent 45%),
+        linear-gradient(to bottom, rgba(10,0,0,0.6) 0%, transparent 35%);
+    }
+
+    /* Nội dung trung tâm ảnh tĩnh */
+    #static-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 0 24px;
+      max-width: 680px;
+    }
+
+    #static-content .label-vn {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    #static-content h1 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      font-style: italic;
+      color: var(--cream);
+      line-height: 1.15;
+      margin-bottom: 8px;
+      text-shadow: 0 4px 32px rgba(0,0,0,0.6);
+    }
+
+    #static-content h2 {
+      font-family: var(--font-body);
+      font-size: clamp(13px, 2vw, 17px);
+      font-weight: 300;
+      color: var(--gold-light);
+      letter-spacing: 0.18em;
+      margin-bottom: 28px;
+    }
+
+    /* Đường kẻ trang trí */
+    .title-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .title-ornament::before,
+    .title-ornament::after {
+      content: '';
+      width: 60px; height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold));
+    }
+    .title-ornament::after {
+      background: linear-gradient(to left, transparent, var(--gold));
+    }
+    .title-ornament span {
+      color: var(--gold);
+      font-size: 18px;
+    }
+
+    #static-content p {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 1.85;
+      color: var(--cream-dim);
+      margin-bottom: 40px;
+    }
+
+    /* Nút bắt đầu tham quan */
+    #btn-enter {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 36px;
+      background: transparent;
+      border: 1px solid var(--gold);
+      border-radius: 3px;
+      color: var(--gold-light);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.3s, color 0.3s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    #btn-enter::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--gold);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: -1;
+    }
+    #btn-enter:hover {
+      color: var(--crimson-dark);
+    }
+    #btn-enter:hover::before {
+      transform: scaleX(1);
+    }
+    #btn-enter .arrow-icon {
+      font-size: 16px;
+      transition: transform 0.3s;
+    }
+    #btn-enter:hover .arrow-icon {
+      transform: translateX(4px);
+    }
+
+
+    /* ═══════════════════════════════════════
+       HEADER — cố định trên cùng
+       ═══════════════════════════════════════ */
+    #header {
+      position: fixed;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      text-align: center;
+      padding: 14px 32px 12px;
+      background: var(--glass);
+      border-bottom: 1px solid var(--gold-dim);
+      border-left:   1px solid var(--gold-dim);
+      border-right:  1px solid var(--gold-dim);
+      border-radius: 0 0 18px 18px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      pointer-events: none;
+      user-select: none;
+    }
+    #header .museum-name {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--gold-light);
+      letter-spacing: 0.06em;
+    }
+    #header .museum-sub {
+      font-family: var(--font-body);
+      font-size: 9.5px;
+      font-weight: 400;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(245,236,215,0.45);
+      margin-top: 4px;
+    }
+
+
+    /* ═══════════════════════════════════════
+       ROOM LABEL — góc trái trên
+       ═══════════════════════════════════════ */
+    #room-label {
+      position: fixed;
+      top: 16px; left: 16px;
+      z-index: 200;
+      padding: 11px 20px;
+      background: var(--glass);
+      border: 1px solid var(--gold-dim);
+      border-radius: 12px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      pointer-events: none;
+      user-select: none;
+      max-width: 280px;
+      transition: opacity 0.4s;
+    }
+    #room-label .scene-index {
+      font-family: var(--font-body);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    #room-label .scene-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--cream);
+      line-height: 1.3;
+    }
+
+
+    /* ═══════════════════════════════════════
+       NÚT ĐIỀU HƯỚNG — trái / phải
+       ═══════════════════════════════════════ */
+    .nav-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 200;
+      width: 48px; height: 48px;
+      background: var(--glass);
+      border: 1px solid var(--gold-dim);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--gold);
+      font-size: 18px;
+      transition: background 0.25s, border-color 0.25s, transform 0.2s;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .nav-btn:hover {
+      background: rgba(123,17,17,0.6);
+      border-color: var(--gold);
+      transform: translateY(-50%) scale(1.12);
+    }
+    .nav-btn:active {
+      transform: translateY(-50%) scale(0.93);
+    }
+    .nav-btn.disabled {
+      opacity: 0.18;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    #btn-prev { left: 18px; }
+    #btn-next { right: 18px; }
+
+    /* SVG arrow icons */
+    .nav-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--gold); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+
+    /* ═══════════════════════════════════════
+       HƯỚNG DẪN — dưới giữa
+       ═══════════════════════════════════════ */
+    #hint {
+      position: fixed;
+      bottom: 18px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 200;
+      padding: 8px 22px;
+      background: var(--glass);
+      border: 1px solid var(--gold-dim);
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 300;
+      color: rgba(245,236,215,0.5);
+      letter-spacing: 0.14em;
+      pointer-events: none;
+      user-select: none;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #hint em { color: var(--gold); font-style: normal; font-weight: 500; }
+
+
+    /* ═══════════════════════════════════════
+       MINIMAP — góc phải dưới
+       ═══════════════════════════════════════ */
+    #minimap {
+      position: fixed;
+      bottom: 18px; right: 18px;
+      z-index: 200;
+      background: var(--glass);
+      border: 1px solid var(--gold-dim);
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      user-select: none;
+    }
+    #minimap .map-title {
+      font-family: var(--font-body);
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 11px;
+      text-align: center;
+    }
+    .map-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .map-cell {
+      width: 34px; height: 34px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,168,76,0.18);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+      gap: 2px;
+    }
+    .map-cell .cell-num {
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(245,236,215,0.38);
+      line-height: 1;
+    }
+    .map-cell .cell-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.3);
+      transition: background 0.2s;
+    }
+    .map-cell:hover {
+      background: rgba(123,17,17,0.45);
+      border-color: var(--gold);
+    }
+    .map-cell:hover .cell-num { color: var(--gold-light); }
+    .map-cell.active {
+      background: var(--crimson);
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(201,168,76,0.35);
+    }
+    .map-cell.active .cell-num { color: var(--gold-light); font-weight: 700; }
+    .map-cell.active .cell-dot { background: var(--gold); }
+
+
+    /* ═══════════════════════════════════════
+       FADE OVERLAY — hiệu ứng chuyển cảnh
+       ═══════════════════════════════════════ */
+    #fade {
+      position: fixed;
+      inset: 0; z-index: 1000;
+      background: #060000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.38s ease;
+    }
+    #fade.on  { opacity: 1; pointer-events: all; }
+    #fade.off { opacity: 0; pointer-events: none; }
+
+
+    /* ═══════════════════════════════════════
+       ERROR BANNER
+       ═══════════════════════════════════════ */
+    #error-box {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 9999;
+      background: linear-gradient(135deg, #3a0000, #1c0808);
+      border-bottom: 2px solid var(--gold);
+      padding: 20px 52px 20px 28px;
+      color: var(--cream);
+      font-family: var(--font-body);
+    }
+    #error-box.show { display: block; }
+    #error-box h3 { font-family: var(--font-display); font-size: 18px; color: var(--gold-light); margin-bottom: 10px; font-style: italic; }
+    #error-box p  { font-size: 13px; line-height: 1.9; margin-bottom: 5px; }
+    #error-box strong { color: var(--gold); }
+    #error-box code {
+      display: inline-block;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--gold-dim);
+      border-radius: 4px;
+      padding: 1px 9px;
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      color: #90ee90;
+    }
+    #error-box button {
+      position: absolute; top: 14px; right: 18px;
+      background: none; border: none;
+      color: var(--gold); font-size: 22px; cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════════
+       A-FRAME CANVAS — fullscreen
+       embedded mode cần CSS rõ ràng
+       ═══════════════════════════════════════ */
+a-scene,
+.a-canvas {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  z-index: 1;
+}
+
+    @media (max-width: 520px) {
+      #minimap { display: none; }
+      #hint { font-size: 10px; padding: 7px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CẢNH 1 — ẢNH TĨNH (hiển thị như trang bìa / intro)
+       ══════════════════════════════════════════════════════════ -->
+  <div id="static-view">
+    <div id="static-bg"></div>
+    <div id="static-overlay"></div>
+    <div id="static-content">
+      <span class="label-vn">Bảo Tàng Di Sản · Heritage Museum</span>
+
+      <h1>Áo Dài<br>Việt Nam</h1>
+      <h2>Nét Đẹp Ngàn Năm Văn Hiến</h2>
+
+      <div class="title-ornament"><span>✦</span></div>
+
+      <p>
+        Hành trình khám phá trang phục truyền thống đặc sắc nhất của dân tộc Việt Nam
+        — từ những tà áo cung đình dưới thời Nguyễn cho đến những thiết kế hiện đại
+        trên sàn diễn quốc tế.
+      </p>
+
+      <button id="btn-enter" onclick="startTour()">
+        Bắt Đầu Tham Quan
+        <span class="arrow-icon">→</span>
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       A-FRAME — 360° VR SCENE (cảnh 2 → 6)
+       ══════════════════════════════════════════════════════════ -->
+  <a-scene
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable; far: 30"
+    embedded
+    vr-mode-ui="enabled: true"
+    renderer="antialias: true; colorManagement: false; physicallyCorrectLights: false; exposure: 1"
+    loading-screen="dotsColor: #C9A84C; backgroundColor: #060000">
+
+    <!-- Preload tất cả ảnh 360 (cảnh 2–6) -->
+    <a-assets timeout="15000">
+      <img id="img-r2" src="images/room2.jpg" crossorigin="anonymous" />
+      <img id="img-r3" src="images/room3.jpg" crossorigin="anonymous" />
+      <img id="img-r4" src="images/room4.jpg" crossorigin="anonymous" />
+      <img id="img-r5" src="images/room5.jpg" crossorigin="anonymous" />
+      <img id="img-r6" src="images/room6.jpg" crossorigin="anonymous" />
+    </a-assets>
+
+    <!-- SKY — dùng asset id thay vì đường dẫn file
+         Không đặt color tối vì sẽ đè lên ảnh -->
+    <a-sky id="sky" src="#img-r2" rotation="0 -90 0"></a-sky>
+
+    <!-- Lights chỉ ảnh hưởng objects, KHÔNG ảnh hưởng a-sky -->
+    <a-light type="ambient" color="#fff" intensity="1.5"></a-light>
+
+    <a-entity id="camera-rig">
+      <a-camera
+        look-controls="reverseMouseDrag: false"
+        wasd-controls="enabled: false"
+        position="0 1.6 0">
+      </a-camera>
+    </a-entity>
+
+  </a-scene>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       UI OVERLAYS (luôn hiển thị trên cùng)
+       ══════════════════════════════════════════════════════════ -->
+
+  <!-- Header -->
+  <div id="header">
+    <div class="museum-name">Bảo Tàng Áo Dài Việt Nam</div>
+    <div class="museum-sub">Vietnamese Áo Dài Virtual Museum</div>
+  </div>
+
+  <!-- Room label -->
+  <div id="room-label">
+    <div class="scene-index" id="lbl-index">Cảnh 01 / 06</div>
+    <div class="scene-name"  id="lbl-name">Sảnh Đón</div>
+  </div>
+
+  <!-- Nav buttons -->
+  <button id="btn-prev" class="nav-btn disabled" onclick="navigatePrev()" title="Cảnh trước (←)">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button id="btn-next" class="nav-btn" onclick="navigateNext()" title="Cảnh tiếp (→)">
+    <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
+  </button>
+
+  <!-- Hint -->
+  <div id="hint">
+    <em>←  →</em> &nbsp;Di chuyển &nbsp;·&nbsp; <em>⊞</em> &nbsp;Bản đồ &nbsp;·&nbsp; <em>Kéo chuột</em> &nbsp;để nhìn xung quanh
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap">
+    <div class="map-title">Sơ Đồ Tham Quan</div>
+    <div id="map-grid" class="map-grid"></div>
+  </div>
+
+  <!-- Fade overlay -->
+  <div id="fade"></div>
+
+  <!-- Error banner -->
+  <div id="error-box">
+    <button onclick="this.parentElement.classList.remove('show')">✕</button>
+    <h3>⚠ Ảnh chưa hiển thị được</h3>
+    <p>Trình duyệt chặn ảnh khi mở file trực tiếp (<code>file://</code>). Cần chạy local server:</p>
+    <p><strong>Python:</strong> <code>python -m http.server 8000</code> → mở <code>http://localhost:8000</code></p>
+    <p><strong>VS Code:</strong> Chuột phải <code>index.html</code> → <em>Open with Live Server</em></p>
+    <p><strong>Node.js:</strong> <code>npx serve .</code></p>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+       JAVASCRIPT
+       ══════════════════════════════════════════════════════════ -->
+  <script>
+  'use strict';
+
+  /* ────────────────────────────────────────────
+     DỮ LIỆU CẢNH (6 cảnh)
+     index 0 = ảnh tĩnh (room1.jpg)
+     index 1–5 = panorama 360 (room2–6.jpg)
+     ──────────────────────────────────────────── */
+  const SCENES = [
+    {
+      type:    'static',                // Cảnh 1: ảnh tĩnh (xử lý riêng)
+      image:   'images/room1.jpg',
+      name:    'Sảnh Đón'
+    },
+    {
+      type:    'panorama',
+      assetId: '#img-r2',
+      name:    'Phòng trưng bày'
+    },
+    {
+      type:    'panorama',
+      assetId: '#img-r3',
+      name:    'Phòng trưng bày'
+    },
+    {
+      type:    'panorama',
+      assetId: '#img-r4',
+      name:    'Phòng trưng bày'
+    },
+    {
+      type:    'panorama',
+      assetId: '#img-r5',
+      name:    'Cảnh vào phòng trưng bày'
+    },
+    {
+      type:    'panorama',
+      assetId: '#img-r6',
+      name:    'Cảnh hồ phía sau'
+    }
+  ];
+
+  /* ────────────────────────────────────────────
+     TRẠNG THÁI
+     ──────────────────────────────────────────── */
+  let current       = 0;
+  let transitioning = false;
+
+  /* ────────────────────────────────────────────
+     ELEMENTS
+     ──────────────────────────────────────────── */
+  const sky        = document.getElementById('sky');
+  const staticView = document.getElementById('static-view');
+  const staticBg   = document.getElementById('static-bg');
+  const fade       = document.getElementById('fade');
+  const btnPrev    = document.getElementById('btn-prev');
+  const btnNext    = document.getElementById('btn-next');
+  const lblIndex   = document.getElementById('lbl-index');
+  const lblName    = document.getElementById('lbl-name');
+  const mapGrid    = document.getElementById('map-grid');
+  const errorBox   = document.getElementById('error-box');
+
+  /* ────────────────────────────────────────────
+     MINIMAP — xây dựng 6 ô
+     ──────────────────────────────────────────── */
+  function buildMinimap() {
+    mapGrid.innerHTML = '';
+    SCENES.forEach((sc, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'map-cell' + (i === current ? ' active' : '');
+      cell.innerHTML = `
+        <span class="cell-num">${String(i + 1).padStart(2,'0')}</span>
+        <span class="cell-dot"></span>
+      `;
+      cell.title = sc.name;
+      cell.addEventListener('click', () => { if (i !== current) changeScene(i); });
+      mapGrid.appendChild(cell);
+    });
+  }
+
+  /* ────────────────────────────────────────────
+     CẬP NHẬT UI
+     ──────────────────────────────────────────── */
+  function updateUI() {
+    const sc = SCENES[current];
+    lblIndex.textContent = `Cảnh ${String(current + 1).padStart(2,'0')} / ${String(SCENES.length).padStart(2,'0')}`;
+    lblName.textContent  = sc.name;
+    btnPrev.classList.toggle('disabled', current === 0);
+    btnNext.classList.toggle('disabled', current === SCENES.length - 1);
+    mapGrid.querySelectorAll('.map-cell').forEach((c, i) => c.classList.toggle('active', i === current));
+  }
+
+  /* ────────────────────────────────────────────
+     HIỂN THỊ CẢNH
+     ──────────────────────────────────────────── */
+  function applyScene(index) {
+    const sc = SCENES[index];
+
+    if (sc.type === 'static') {
+      // Cảnh 1: hiện ảnh tĩnh, ẩn A-Frame
+      staticBg.style.backgroundImage = `url('${sc.image}')`;
+      staticView.classList.remove('hidden');
+    } else {
+      // Cảnh 360: ẩn ảnh tĩnh, cập nhật sky
+      staticView.classList.add('hidden');
+      sky.setAttribute('src', sc.assetId);
+    }
+  }
+
+  /* ────────────────────────────────────────────
+     ĐỔI CẢNH — với hiệu ứng fade
+     ──────────────────────────────────────────── */
+  function changeScene(index) {
+    if (transitioning || index === current) return;
+    if (index < 0 || index >= SCENES.length) return;
+
+    transitioning = true;
+
+    // Bước 1: Fade đen
+    fade.classList.add('on');
+
+    setTimeout(() => {
+      current = index;
+      applyScene(current);
+      updateUI();
+
+      // Bước 2: Fade sáng trở lại
+      setTimeout(() => {
+        fade.classList.remove('on');
+        fade.classList.add('off');
+        setTimeout(() => {
+          fade.classList.remove('off');
+          transitioning = false;
+        }, 400);
+      }, 250);
+
+    }, 380);
+  }
+
+  /* ────────────────────────────────────────────
+     ĐIỀU HƯỚNG
+     ──────────────────────────────────────────── */
+  function navigatePrev() { changeScene(current - 1); }
+  function navigateNext() { changeScene(current + 1); }
+
+  /* Nút "Bắt Đầu Tham Quan" ở cảnh 1 */
+  function startTour() { changeScene(1); }
+
+  /* Phím tắt bàn phím */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft')  navigatePrev();
+    if (e.key === 'ArrowRight') navigateNext();
+  });
+
+  /* ────────────────────────────────────────────
+     KIỂM TRA ẢNH — hiện lỗi nếu không load được
+     ──────────────────────────────────────────── */
+  function checkImages() {
+    const img = document.getElementById('img-r2');
+    if (!img) return;
+    const fail = () => errorBox.classList.add('show');
+    if (img.complete && img.naturalWidth === 0) fail();
+    img.addEventListener('error', fail);
+  }
+
+  /* ────────────────────────────────────────────
+     KHỞI TẠO
+     ──────────────────────────────────────────── */
+  document.querySelector('a-scene').addEventListener('loaded', () => {
+    buildMinimap();
+    applyScene(0);   // Hiển thị cảnh 1 (ảnh tĩnh) lúc đầu
+    updateUI();
+    setTimeout(checkImages, 2500);
+
+    console.log('%c🏛 Bảo Tàng Áo Dài — Sẵn sàng!', 'font-size:14px; color:#C9A84C;');
+    console.log('📁 images/room1.jpg … room6.jpg');
+    console.log('🌐 python -m http.server 8000 → http://localhost:8000');
+  });
+
+  </script>
+</body>
+</html>
